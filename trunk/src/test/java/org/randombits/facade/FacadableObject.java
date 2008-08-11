@@ -46,7 +46,7 @@ public class FacadableObject implements FacadableInterface {
         return value;
     }
 
-    public String toString() {
+    @Override public String toString() {
         return String.valueOf( value );
     }
 

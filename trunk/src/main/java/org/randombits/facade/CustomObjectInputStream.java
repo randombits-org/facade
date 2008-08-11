@@ -38,7 +38,7 @@ public class CustomObjectInputStream extends ObjectInputStream {
         classLoader = newLoader;
     }
 
-    protected Class<?> resolveClass( ObjectStreamClass osc ) throws IOException, ClassNotFoundException {
+    @Override protected Class<?> resolveClass( ObjectStreamClass osc ) throws IOException, ClassNotFoundException {
         Class<?> theClass = null;
 
         try {

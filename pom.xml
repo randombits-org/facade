@@ -123,10 +123,5 @@
     	<name>Facade SVN Repository</name>
     	<url>svn:https://facade.googlecode.com/svn/maven2</url>
     </snapshotRepository>
-    <site>
-    	<id>google-code</id>
-    	<name>Facade Documentation</name>
-    	<url>svn:svn+ssh://facade.googlecode.com/svn/docs/${project.version}</url>
-    </site>
   </distributionManagement>
 </project>

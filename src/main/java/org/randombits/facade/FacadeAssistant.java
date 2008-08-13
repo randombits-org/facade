@@ -139,19 +139,19 @@ public class FacadeAssistant {
                 try {
                     return ( Integer ) a.getClass().getMethod( "value" ).invoke( a );
                 } catch ( IllegalArgumentException e ) {
-//                    LOG.error( e );
+                    // LOG.error( e );
                     e.printStackTrace();
                 } catch ( SecurityException e ) {
-//                    LOG.error( e );
+                    // LOG.error( e );
                     e.printStackTrace();
                 } catch ( IllegalAccessException e ) {
-//                    LOG.error( e );
+                    // LOG.error( e );
                     e.printStackTrace();
                 } catch ( InvocationTargetException e ) {
-//                    LOG.error( e );
+                    // LOG.error( e );
                     e.printStackTrace();
                 } catch ( NoSuchMethodException e ) {
-//                    LOG.error( e );
+                    // LOG.error( e );
                     e.printStackTrace();
                 }
             }
@@ -343,7 +343,7 @@ public class FacadeAssistant {
         return targetObject;
 
     }
-    
+
     private <T> T toSerialized( Object sourceObject, Class<T> targetType, ClassLoader targetClassLoader ) {
         try {
             // Freeze
@@ -351,16 +351,16 @@ public class FacadeAssistant {
             ObjectOutputStream out = new ObjectOutputStream( baos );
             out.writeObject( sourceObject );
             out.close();
-            
+
             // Thaw
-            ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+            ByteArrayInputStream bais = new ByteArrayInputStream( baos.toByteArray() );
             CustomObjectInputStream in = new CustomObjectInputStream( bais, targetClassLoader );
             Object targetObject = in.readObject();
             in.close();
-            
+
             if ( targetType.isInstance( targetObject ) )
                 return ( T ) targetObject;
-            
+
         } catch ( IOException e ) {
             // TODO Auto-generated catch block
             e.printStackTrace();
@@ -448,7 +448,7 @@ public class FacadeAssistant {
         if ( sourceObject == null )
             return false;
 
-        // First, check if it implements Facadable. If not, bail.
+        // First, if the @Facadable annotation is available in the target classloader.
         Class<? extends Annotation> facadable = findAnnotationClass( Facadable.class, sourceObject );
         if ( facadable == null )
             return false;
@@ -475,6 +475,10 @@ public class FacadeAssistant {
                 for ( int i = 0; !isFacadable && i < interfaces.length; i++ ) {
                     isFacadable = isFacadable( interfaces[i], facadable );
                 }
+
+                // Try the superclass (and its interfaces).
+                if ( !isFacadable && type.getSuperclass() != null )
+                    isFacadable = isFacadable( type.getSuperclass(), facadable );
             }
             facadableClasses.put( type, isFacadable );
         }

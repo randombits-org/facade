@@ -306,4 +306,14 @@ public class FacadeAssistantTest {
         assertTrue( value instanceof FacadableInterface );
     }
     
+    @Test
+    public void testFacadedSubclass() throws IllegalArgumentException, SecurityException, InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException, ClassNotFoundException {
+        
+        Object subclassB = Class.forName( FacadableSubclass.class.getName(), true, classLoaderB ).getConstructor( Object.class, int.class ).newInstance( valueB, 3 );
+        assertFalse( facadeAssistant.isLocal( subclassB ) );
+        
+        FacadableInterface facadeB = facadeAssistant.prepareObject( subclassB, FacadableInterface.class );
+        assertTrue( facadeAssistant.isLocalFacade( facadeB ) );
+    }
+    
 }

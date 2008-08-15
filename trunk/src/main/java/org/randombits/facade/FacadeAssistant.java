@@ -339,6 +339,13 @@ public class FacadeAssistant {
             // If that fails, convert it via Serialization
             targetObject = toSerialized( sourceObject, targetType, targetClassLoader );
         }
+        
+        if ( targetObject == null ) {
+            // If all else fails, return the unmodified object.
+            // If it's incompatible, a ClassCastException will be thrown.
+            targetObject = ( T ) sourceObject;
+        }
+            
 
         return targetObject;
 

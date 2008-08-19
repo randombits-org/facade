@@ -3,7 +3,7 @@
 	<groupId>org.randombits.facade</groupId>
 	<artifactId>facade</artifactId>
 	<packaging>jar</packaging>
-	<version>1.0.1</version>
+	<version>1.0.2-SNAPSHOT</version>
 	<name>Facade</name>
 	<url>http://code.google.com/p/facade</url>
 
@@ -55,9 +55,9 @@
 	</dependencies>
 	
 	<scm>
-		<connection>scm:svn:http://facade.googlecode.com/svn/tags/1.0.1</connection>
-		<developerConnection>scm:svn:https://facade.googlecode.com/svn/tags/1.0.1</developerConnection>
-		<url>http://facade.googlecode.com/svn/tags/1.0.1</url>
+		<connection>scm:svn:http://facade.googlecode.com/svn/trunk/</connection>
+		<developerConnection>scm:svn:https://facade.googlecode.com/svn/trunk/</developerConnection>
+		<url>http://facade.googlecode.com/svn/trunk/</url>
 	</scm>
 
 	<build>

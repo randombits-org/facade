@@ -101,7 +101,7 @@ public class FacadeInvocationHandler implements InvocationHandler {
 
             if ( arg == null )
                 return null;
-            
+
             else if ( arg instanceof Class )
                 return ( Class<?> ) arg;
 
@@ -134,6 +134,32 @@ public class FacadeInvocationHandler implements InvocationHandler {
     private Method findWrappedMethod( Method method ) throws NoSuchMethodException, ClassNotFoundException {
         Class<?>[] paramTypes = FacadeAssistant.getInstance().toFacadeClasses( method.getParameterTypes(),
                 wrappedLoader, true );
-        return wrapped.getClass().getMethod( method.getName(), paramTypes );
+        Method wrappedMethod = findHighestMethod( wrapped.getClass(), method.getName(), paramTypes );
+        if ( wrappedMethod == null )
+            throw new NoSuchMethodException( method.getName() );
+        return wrappedMethod;
     }
+
+    // recurse up hierarchy, looking for highest method
+    private Method findHighestMethod( Class<?> cls, String method, Class<?>... paramTypes )
+            throws SecurityException {
+        Class<?>[] interfaces = cls.getInterfaces();
+        for ( int i = 0; i < interfaces.length; i++ ) {
+            Method ifaceMethod = findHighestMethod( interfaces[i], method, paramTypes );
+            if ( ifaceMethod != null )
+                return ifaceMethod;
+        }
+        if ( cls.getSuperclass() != null ) {
+            Method parentMethod = findHighestMethod( cls.getSuperclass(), method, paramTypes );
+            if ( parentMethod != null )
+                return parentMethod;
+        }
+
+        try {
+            return cls.getMethod( method, paramTypes );
+        } catch ( NoSuchMethodException e ) {
+            return null;
+        }
+    }
+
 }

@@ -1,4 +1,5 @@
-<?xml version="1.0" encoding="UTF-8"?><metadata>
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata>
   <groupId>org.randombits.facade</groupId>
   <artifactId>facade</artifactId>
   <version>1.0.0-SNAPSHOT</version>
@@ -9,7 +10,8 @@
       <version>1.0.0</version>
       <version>1.0.1-SNAPSHOT</version>
       <version>1.0.1</version>
+      <version>1.0.2-SNAPSHOT</version>
     </versions>
-    <lastUpdated>20080819043100</lastUpdated>
+    <lastUpdated>20090527184013</lastUpdated>
   </versioning>
 </metadata>

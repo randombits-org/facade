@@ -1,0 +1,127 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>org.randombits.facade</groupId>
+	<artifactId>facade</artifactId>
+	<packaging>jar</packaging>
+	<version>1.0.2</version>
+	<name>Facade</name>
+	<url>http://code.google.com/p/facade</url>
+
+	<description>
+		This library provides a mechanism for accessing objects between
+		class loaders.
+	</description>
+	
+	<organization>
+		<name>randombits.org</name>
+		<url>http://www.randombits.org/</url>
+	</organization>
+
+	<developers>
+		<developer>
+			<name>David Peterson</name>
+			<organization>randombits.org</organization>
+			<organizationUrl>http://www.randombits.org/</organizationUrl>
+			<roles>
+				<role>Original Developer</role>
+			</roles>
+		</developer>
+	</developers>
+
+	<issueManagement>
+		<system>Google Code</system>
+		<url>http://code.google.com/p/facade/issues/list</url>
+	</issueManagement>
+
+	<dependencies>
+		<dependency>
+			<groupId>commons-io</groupId>
+			<artifactId>commons-io</artifactId>
+			<version>1.4</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.jmock</groupId>
+			<artifactId>jmock-junit4</artifactId>
+			<version>2.4.0</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>4.4</version>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
+	
+	<scm>
+		<connection>scm:svn:http://facade.googlecode.com/svn/tags/1.0.2</connection>
+		<developerConnection>scm:svn:https://facade.googlecode.com/svn/tags/1.0.2</developerConnection>
+		<url>http://facade.googlecode.com/svn/tags/1.0.2</url>
+	</scm>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>2.0</version>
+				<configuration>
+					<source>1.5</source>
+					<target>1.5</target>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>apt-maven-plugin</artifactId>
+				<executions>
+					<execution>
+						<goals>
+							<goal>process</goal>
+							<!-- goal>test-process</goal -->
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+    <extensions>
+      <extension>
+        <groupId>org.jvnet.wagon-svn</groupId>
+        <artifactId>wagon-svn</artifactId>
+        <version>1.8</version>
+      </extension>
+    </extensions>
+	</build>
+	
+	<repositories>
+    <repository>
+      <id>maven2-repository.dev.java.net</id>
+      <name>Java.net Repository for Maven</name>
+      <url>http://download.java.net/maven/2/</url>
+    </repository>
+  </repositories>
+
+  <pluginRepositories>
+    <pluginRepository>
+      <id>codehaus</id>
+      <name>Codehaus Repository</name>
+      <url>http://repository.codehaus.org</url>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+    </pluginRepository>
+  </pluginRepositories>
+  
+  <distributionManagement>
+    <repository>
+      <id>google-code</id>
+      <name>Facade SVN Repository</name>
+      <url>svn:https://facade.googlecode.com/svn/maven2</url>
+    </repository>
+    <snapshotRepository>
+    	<id>google-code</id>
+    	<name>Facade SVN Repository</name>
+    	<url>svn:https://facade.googlecode.com/svn/maven2</url>
+    </snapshotRepository>
+  </distributionManagement>
+</project>

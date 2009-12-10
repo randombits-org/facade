@@ -23,22 +23,28 @@
  */
 package org.randombits.facade;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import org.hamcrest.Description;
+import org.jmock.Expectations;
+import org.jmock.Mockery;
+import org.jmock.api.Action;
+import org.jmock.api.Invocation;
+import org.jmock.integration.junit4.JMock;
+import org.jmock.integration.junit4.JUnit4Mockery;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Proxy;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import static org.junit.Assert.*;
 
+@RunWith( JMock.class )
 public class FacadeAssistantTest {
+
+    private Mockery context = new JUnit4Mockery();
+
     private FacadeAssistant facadeAssistant;
 
     private ClassLoader classLoaderA;
@@ -53,28 +59,26 @@ public class FacadeAssistantTest {
 
     private String valueB;
 
-    private String valueA;
-
-    private Class<FacadableObject> classA;
-
-    private Class<?> classB;
-
     @Before
     public void setUp() throws Exception {
         facadeAssistant = new FacadeAssistant();
 
         // 'A'
         classLoaderA = getClass().getClassLoader();
-        classA = FacadableObject.class;
-        valueA = "A";
+        Class<FacadableObject> classA = FacadableObject.class;
+        String valueA = "A";
         testA = classA.getConstructor( Object.class ).newInstance( valueA );
 
         // 'B'
         classLoaderB = new IsolatedClassLoader().include( FacadeAssistant.class.getPackage() );
-        interfaceB = Class.forName( FacadableInterface.class.getName(), true, classLoaderB );
-        classB = Class.forName( FacadableObject.class.getName(), true, classLoaderB );
+        interfaceB = findClass( FacadableInterface.class, classLoaderB );
+        Class<?> classB = findClass( FacadableObject.class, classLoaderB );
         valueB = "B";
         testB = classB.getConstructor( Object.class, int.class ).newInstance( valueB, 3 );
+    }
+
+    private Class<?> findClass( Class<?> type, ClassLoader targetLoader ) throws ClassNotFoundException {
+        return Class.forName( type.getName(), true, targetLoader );
     }
 
     @After
@@ -273,7 +277,7 @@ public class FacadeAssistantTest {
     @Test
     public void testPushFacadedObject() {
         FacadableInterface facadeOfB = facadeAssistant.prepareObject( testB, FacadableInterface.class );
-        
+
         assertTrue( FacadeAssistant.getInstance().isLocalFacade( facadeOfB ) );
 
         FacadableInterface.Result result = facadeOfB.checkInterface( testA );
@@ -282,18 +286,18 @@ public class FacadeAssistantTest {
         FacadableInterface[] array = facadeOfB.getArray( FacadableInterface.class );
         assertEquals( 3, array.length );
         for ( int i = 0; i < array.length; i++ ) {
-            assertEquals( Integer.valueOf( i ), array[i].getValue() );
+            assertEquals( i, array[i].getValue() );
         }
     }
-    
+
     @Test
     public void testGenericArray() {
         FacadableInterface facadeOfB = facadeAssistant.prepareObject( testB, FacadableInterface.class );
-        
+
         FacadableInterface[] array = facadeOfB.getArray( FacadableInterface.class );
         assertEquals( 3, array.length );
         for ( int i = 0; i < array.length; i++ ) {
-            assertEquals( Integer.valueOf( i ), array[i].getValue() );
+            assertEquals( i, array[i].getValue() );
         }
 
     }
@@ -302,18 +306,105 @@ public class FacadeAssistantTest {
     public void testFacadedAsObject() {
         FacadableInterface facadeOfB = facadeAssistant.prepareObject( testB, FacadableInterface.class );
         Object value = facadeOfB.getFacadableAsObject();
-        
+
         assertTrue( value instanceof FacadableInterface );
     }
-    
+
     @Test
     public void testFacadedSubclass() throws IllegalArgumentException, SecurityException, InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException, ClassNotFoundException {
-        
-        Object subclassB = Class.forName( FacadableSubclass.class.getName(), true, classLoaderB ).getConstructor( Object.class, int.class ).newInstance( valueB, 3 );
+
+        Object subclassB = findClass( FacadableSubclass.class, classLoaderB ).getConstructor( Object.class, int.class ).newInstance( valueB, 3 );
         assertFalse( facadeAssistant.isLocal( subclassB ) );
-        
+
         FacadableInterface facadeB = facadeAssistant.prepareObject( subclassB, FacadableInterface.class );
         assertTrue( facadeAssistant.isLocalFacade( facadeB ) );
     }
-    
+
+    @Test
+    public void testCachableFacades() throws ClassNotFoundException, IllegalAccessException, InstantiationException {
+        FacadeAssistant facadeAssistant = new FacadeAssistant();
+
+        final FacadeCache cache = context.mock( FacadeCache.class );
+        facadeAssistant.setFacadeCache( cache );
+
+        // Create the cachable object.
+        final Object cachableInstance = findClass( CachableObject.class, classLoaderB ).newInstance();
+        assertFalse( facadeAssistant.isLocal( cachableInstance ) );
+
+        // Set up expectations
+        context.checking( new Expectations() {
+            private CachableInterface facade;
+
+            {
+                one( cache ).get( cachableInstance, CachableInterface.class );
+                will( returnValue( null ) );
+
+                one( cache ).set( with( equal( cachableInstance ) ), with( any( CachableInterface.class ) ), with( equal( CachableInterface.class ) ) );
+                will( new Action() {
+                    public void describeTo( Description description ) {
+                        description.appendText( "stores the value" );
+                    }
+
+                    public Object invoke( Invocation invocation ) throws Throwable {
+                        facade = (CachableInterface) invocation.getParameter( 1 );
+                        return null;
+                    }
+                } );
+
+                one( cache ).get( cachableInstance, CachableInterface.class );
+                will( new Action() {
+                    public void describeTo( Description description ) {
+                        description.appendText( "retrieves the value." );
+                    }
+
+                    public Object invoke( Invocation invocation ) throws Throwable {
+                        return facade;
+                    }
+                } );
+            }} );
+
+        CachableInterface facadedObject1 = facadeAssistant.prepareObject( cachableInstance, CachableInterface.class );
+        assertNotSame( cachableInstance, facadedObject1 );
+        assertTrue( facadeAssistant.isFacade( facadedObject1 ) );
+
+        CachableInterface facadedObject2 = facadeAssistant.prepareObject( cachableInstance, CachableInterface.class );
+        assertNotSame( cachableInstance, facadedObject1 );
+        assertTrue( facadeAssistant.isFacade( facadedObject1 ) );
+
+        // The two facaded values should be the same instance, since they were cached.
+        assertSame( facadedObject1, facadedObject2 );
+        assertSame( facadeAssistant.getWrapped( facadedObject1 ), facadeAssistant.getWrapped( facadedObject2 ) );
+
+    }
+
+    @Test
+    public void testUncachableFacades() throws ClassNotFoundException, IllegalAccessException, InstantiationException {
+        FacadeAssistant facadeAssistant = new FacadeAssistant();
+
+        final FacadeCache cache = context.mock( FacadeCache.class );
+        facadeAssistant.setFacadeCache( cache );
+
+        // Create the cachable object.
+        final Object uncachableInstance = findClass( UncachableObject.class, classLoaderB ).newInstance();
+        assertFalse( facadeAssistant.isLocal( uncachableInstance ) );
+
+        // Set up expectations
+        context.checking( new Expectations() {{
+            // No calls expected.
+        }} );
+
+        CachableInterface facadedObject1 = facadeAssistant.prepareObject( uncachableInstance, CachableInterface.class );
+        assertNotSame( uncachableInstance, facadedObject1 );
+        assertTrue( facadeAssistant.isFacade( facadedObject1 ) );
+
+        CachableInterface facadedObject2 = facadeAssistant.prepareObject( uncachableInstance, CachableInterface.class );
+        assertTrue( facadeAssistant.isFacade( facadedObject2 ) );
+
+        assertNotSame( uncachableInstance, facadedObject1 );
+
+        // In this case, the two facades should not be the same instance.
+        assertNotSame( facadedObject1, facadedObject2 );
+        assertSame( facadeAssistant.getWrapped( facadedObject1 ), facadeAssistant.getWrapped( facadedObject2 ) );
+    }
+
 }

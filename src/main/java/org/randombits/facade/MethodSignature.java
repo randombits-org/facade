@@ -30,6 +30,7 @@ import java.util.Arrays;
  * Defines the name and parameter types for a method.
  */
 class MethodSignature {
+    
     private String name;
 
     private Class<?>[] parameterTypes;
@@ -96,7 +97,7 @@ class MethodSignature {
      */
     public Method findDeclaredMethod( Class<?> type ) {
         try {
-            return type.getDeclaredMethod( name, parameterTypes );
+            return type.getDeclaredMethod( name, (Class<?>[])parameterTypes );
         } catch ( SecurityException e ) {
             // Do nothing.
         } catch ( NoSuchMethodException e ) {
@@ -115,7 +116,7 @@ class MethodSignature {
      */
     public Method findMethod( Class<?> type ) {
         try {
-            return type.getMethod( name, parameterTypes );
+            return type.getMethod( name, (Class<?>[])parameterTypes );
         } catch ( SecurityException e ) {
             // Do nothing.
         } catch ( NoSuchMethodException e ) {

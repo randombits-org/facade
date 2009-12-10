@@ -23,17 +23,16 @@
  */
 package org.randombits.facade;
 
-import java.io.InputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectStreamClass;
-import java.io.StreamCorruptedException;
 
 public class CustomObjectInputStream extends ObjectInputStream {
+
     ClassLoader classLoader = null;
 
-    public CustomObjectInputStream( InputStream theStream, ClassLoader newLoader ) throws IOException,
-            StreamCorruptedException {
+    public CustomObjectInputStream( InputStream theStream, ClassLoader newLoader ) throws IOException {
         super( theStream );
         classLoader = newLoader;
     }
@@ -44,7 +43,7 @@ public class CustomObjectInputStream extends ObjectInputStream {
         try {
             theClass = Class.forName( osc.getName(), true, classLoader );
         } catch ( Exception e ) {
-            e.printStackTrace();
+            // Do nothing, just return null.
         }
 
         return theClass;

@@ -25,7 +25,8 @@ package org.randombits.facade;
 
 import java.util.Set;
 
-public @Facadable interface FacadableInterface {
+@Facadable
+public interface FacadableInterface {
     public enum Result {
         SAME, LOCAL, FACADE
     }
@@ -37,13 +38,15 @@ public @Facadable interface FacadableInterface {
     @ArrayTypeParameter( 0 )
     <F> F[] getArray( Class<F> type );
 
-    @Facadable Set<FacadableInterface> getSet();
+    @Facadable
+    Set<FacadableInterface> getSet();
 
     UnfacadableInterface getUnfacadable();
 
     void setFacadedUnfacadable( @Facadable UnfacadableInterface ui );
-    
-    @Facadable UnfacadableInterface getFacadedUnfacadable();
-    
+
+    @Facadable
+    UnfacadableInterface getFacadedUnfacadable();
+
     public Object getFacadableAsObject();
 }

@@ -41,7 +41,7 @@ import java.util.Set;
 /**
  * This assistant class helps with transporting objects between classloaders.
  * See {@link #prepareObject(Object, ClassLoader)} for details.
- * 
+ *
  * @author David Peterson
  */
 public class FacadeAssistant {
@@ -80,7 +80,7 @@ public class FacadeAssistant {
         }
 
         private boolean checkMethod( Class<?> type, MethodSignature signature,
-                Class<? extends Annotation> facadable, Class<? extends Annotation> arrayTypeParam ) {
+                                     Class<? extends Annotation> facadable, Class<? extends Annotation> arrayTypeParam ) {
             boolean allFacadable = false;
 
             Method method = signature.findDeclaredMethod( type );
@@ -137,7 +137,7 @@ public class FacadeAssistant {
             Annotation a = method.getAnnotation( arrayTypeParam );
             if ( a != null ) {
                 try {
-                    return ( Integer ) a.getClass().getMethod( "value" ).invoke( a );
+                    return (Integer) a.getClass().getMethod( "value" ).invoke( a );
                 } catch ( IllegalArgumentException e ) {
                     // LOG.error( e );
                     e.printStackTrace();
@@ -161,9 +161,8 @@ public class FacadeAssistant {
         /**
          * Merges the values in the specified facade info into this one. The
          * <code>info</code> object is not modified.
-         * 
-         * @param info
-         *            The info to merge with.
+         *
+         * @param info The info to merge with.
          * @return <code>true</code> if the whole method is facadable.
          */
         private boolean mergeInfo( FacadeInfo info ) {
@@ -188,6 +187,7 @@ public class FacadeAssistant {
 
                 if ( arrayTypeParameter == -1 )
                     arrayTypeParameter = info.arrayTypeParameter;
+
                 allFacadable = allFacadable && arrayTypeParameter != -1;
             }
 
@@ -197,7 +197,7 @@ public class FacadeAssistant {
 
     private static final FacadeAssistant INSTANCE = new FacadeAssistant();
 
-    private Map<ClassLoader, Map<Object, Object>> loaderCache;
+    private FacadeCache cache;
 
     private Map<Class<?>, Boolean> facadableClasses;
 
@@ -206,10 +206,28 @@ public class FacadeAssistant {
     FacadeAssistant() {
         facadableClasses = new java.util.HashMap<Class<?>, Boolean>();
         facadableMethods = new java.util.HashMap<Class<?>, Map<MethodSignature, FacadeInfo>>();
+        cache = new WeakHashMapCache();
     }
 
     public static FacadeAssistant getInstance() {
         return INSTANCE;
+    }
+
+    /**
+     * Sets the cache provider to the specified cache. If a cache has already been configured,
+     * it will be cleared before being replaced. The default cache implementation is the
+     * {@link WeakHashMapCache}.
+     *
+     * @param cache The new cache.
+     */
+    public void setFacadeCache( FacadeCache cache ) {
+        if ( this.cache != cache ) {
+            // clear the old cache
+            if ( this.cache != null )
+                this.cache.clear();
+            // install it.
+            this.cache = cache;
+        }
     }
 
     public Object prepareObject( Object sourceObject, ClassLoader targetClassLoader ) {
@@ -240,7 +258,7 @@ public class FacadeAssistant {
      * class loader, return the original object.</li>
      * <li>If the object implements the {@link Facadable} interface, a proxy
      * object will be returned which implements all interfaces the object
-     * implements, other than {@link Facadable} itself.</li>
+     * implements that have equivalents present in the target class loader.</li>
      * <li>Otherwise, the object will be serialised and then unserialised using
      * the target class loader, so that all class references are local to that
      * class loader.</li>
@@ -252,31 +270,26 @@ public class FacadeAssistant {
      * original, other times it won't. In the same way, {@link Facadable}
      * objects should treat all parameters passed to it in the same way.
      * </p>
-     * 
-     * @param <T>
-     *            The type of the target object.
-     * @param sourceObject
-     *            The object.
-     * @param targetType
-     *            The target type. Must be from the target classloader.
-     * @param targetClassLoader
-     *            The target classloader.
-     * @param facadeShared
-     *            If <code>true</code> and the sourceObject is 'shared' (see
-     *            {@link #isShared(Object, ClassLoader)), the object will be
-     *            facaded even if it doesn't have the {@link Facaded}
-     *            annotation.
-     * @return An instance of the object prepared for the target class loader.
-     * @throws IllegalArgumentException
-     *             if the targetType is not from the target classloader
+     *
+     * @param <T>               The type of the target object.
+     * @param sourceObject      The object.
+     * @param targetType        The target type. Must be from the target classloader.
+     * @param targetClassLoader The target classloader.
+     * @param facadeShared      If <code>true</code> and the sourceObject is 'shared' (see
+     *                          {@link #isShared(Object, ClassLoader)), the object will be
+     *                          facaded even if it doesn't have the {@link Facadable}
+     *                          annotation.
+     * @return The object, prepared to be usable in the target class loader.
+     * @throws IllegalArgumentException if the targetType is not from the target classloader
      */
     public <T> T prepareObject( Object sourceObject, Class<T> targetType, ClassLoader targetClassLoader,
-            boolean facadeShared ) {
+                                boolean facadeShared ) {
         return prepareObject( sourceObject, targetType, targetClassLoader, facadeShared, null );
     }
 
+    @SuppressWarnings( {"unchecked"} )
     public <T> T prepareObject( Object sourceObject, Class<T> targetType, ClassLoader targetClassLoader,
-            boolean facadeShared, Class<?> componentType ) {
+                                boolean facadeShared, Class<?> componentType ) {
         if ( sourceObject == null )
             return null;
 
@@ -286,23 +299,23 @@ public class FacadeAssistant {
         // Check if we need to do any processing at all...
         if ( sourceClassLoader == targetClassLoader ) {
             // The object is from the target class loader
-            return ( T ) sourceObject;
+            return (T) sourceObject;
         }
         // Check if it's shared.
         boolean isShared = isShared( sourceObject, targetClassLoader );
         if ( ( !facadeShared && isShared ) )
-            return ( T ) sourceObject;
+            return (T) sourceObject;
 
         // Handle special class types
         if ( Class.class.equals( sourceType ) ) {
             // It's a class
-            return ( T ) findClass( sourceType, targetClassLoader );
+            return (T) findClass( sourceType, targetClassLoader );
         }
         if ( sourceType.isArray() && targetType.isArray() ) {
             // Handle arrays
             if ( componentType == null )
                 componentType = targetType.getComponentType();
-            return ( T ) toArray( sourceObject, componentType, targetClassLoader, facadeShared );
+            return (T) toArray( sourceObject, componentType, targetClassLoader, facadeShared );
         } else if ( sourceType.isEnum() && targetType.isEnum() ) {
             // Handle enums
             return toEnum( sourceObject, targetType );
@@ -312,7 +325,7 @@ public class FacadeAssistant {
         Object wrapped = getWrapped( sourceObject );
         if ( wrapped != null ) {
             if ( targetType.isInstance( wrapped ) )
-                return ( T ) wrapped;
+                return (T) wrapped;
             else
                 sourceObject = wrapped;
         }
@@ -321,14 +334,16 @@ public class FacadeAssistant {
         if ( ( Object.class.equals( targetType ) || targetType.isInterface() ) ) {
             if ( isShared || isFacadable( sourceObject, targetType ) ) {
                 // If we get this far, we're going to have to convert it.
-                // See if we have a cached facade already constructed
-                targetObject = findCachedFacade( sourceObject, targetType );
+                // See if we have a cachable facade already constructed
+                boolean cachable = isCachable( sourceObject );
+                if ( cachable )
+                    targetObject = getCachedFacade( sourceObject, targetType );
 
                 if ( targetObject == null ) {
                     targetObject = toFacade( sourceObject, targetType, targetClassLoader );
 
-                    if ( targetObject != null ) {
-                        cacheFacade( targetObject, sourceObject, targetType );
+                    if ( targetObject != null && cachable ) {
+                        setCachedFacade( targetObject, sourceObject, targetType );
                     }
                 }
             }
@@ -339,18 +354,36 @@ public class FacadeAssistant {
             // If that fails, convert it via Serialization
             targetObject = toSerialized( sourceObject, targetType, targetClassLoader );
         }
-        
+
         if ( targetObject == null ) {
             // If all else fails, return the unmodified object.
             // If it's incompatible, a ClassCastException will be thrown.
-            targetObject = ( T ) sourceObject;
+            targetObject = (T) sourceObject;
         }
-            
+
 
         return targetObject;
 
     }
 
+    /**
+     * Returns <code>true</code> if the value is directly annotated by {@link Cachable}.
+     *
+     * @param value The value to check
+     * @return <code>true</code> if the object is cachable.
+     */
+    private boolean isCachable( Object value ) {
+        if ( value == null )
+            return false;
+        Class<? extends Annotation> cachable = findAnnotationClass( Cachable.class, value );
+        if ( cachable != null ) {
+            Annotation annotation = value.getClass().getAnnotation( cachable );
+            return annotation != null;
+        }
+        return false;
+    }
+
+    @SuppressWarnings( {"unchecked"} )
     private <T> T toSerialized( Object sourceObject, Class<T> targetType, ClassLoader targetClassLoader ) {
         try {
             // Freeze
@@ -366,7 +399,7 @@ public class FacadeAssistant {
             in.close();
 
             if ( targetType.isInstance( targetObject ) )
-                return ( T ) targetObject;
+                return (T) targetObject;
 
         } catch ( IOException e ) {
             // TODO Auto-generated catch block
@@ -379,7 +412,7 @@ public class FacadeAssistant {
     }
 
     private Object toArray( Object sourceObject, Class<?> componentType, ClassLoader targetClassLoader,
-            boolean requireFacade ) {
+                            boolean requireFacade ) {
         // Localise the component type.
         componentType = findClass( componentType, targetClassLoader );
 
@@ -397,19 +430,17 @@ public class FacadeAssistant {
      * Converts the specified object to an enum of the specified type. The
      * object must be an instance of the same enum, either in the same or an
      * alternate ClassLoader.
-     * 
-     * @param <T>
-     *            The enum class type.
-     * @param sourceObject
-     *            The source object.
-     * @param enumType
-     *            The enum type in the target classloader.
-     * @return
+     *
+     * @param <T>          The enum class type.
+     * @param sourceObject The source object.
+     * @param enumType     The enum type in the target classloader.
+     * @return The specified enum type.
      */
+    @SuppressWarnings( {"unchecked"} )
     private <T> T toEnum( Object sourceObject, Class<T> enumType ) {
         try {
-            return ( T ) enumType.getMethod( "valueOf", String.class ).invoke( null,
-                    ( ( Enum<?> ) sourceObject ).name() );
+            return (T) enumType.getMethod( "valueOf", String.class ).invoke( null,
+                    ( (Enum<?>) sourceObject ).name() );
         } catch ( IllegalArgumentException e ) {
             throw new FacadeException( "Unexpected exception: " + e.getMessage(), e );
         } catch ( SecurityException e ) {
@@ -427,9 +458,8 @@ public class FacadeAssistant {
      * Checks if the object is local to this classloader. If the object is
      * <code>null</code>, <code>false</code> is returned since it cannot be
      * determined conclusively.
-     * 
-     * @param object
-     *            The object to test.
+     *
+     * @param object The object to test.
      * @return <code>true</code> if the object is not-null and is created by
      *         the current classloader.
      */
@@ -442,12 +472,9 @@ public class FacadeAssistant {
      * object to be facadable, it must implement the Facadable interface, and
      * implement the equivalent Class of the <code>targetType</code> in its
      * own ClassLoader.
-     * 
-     * @param sourceObject
-     *            The object to check.
-     * @param targetType
-     *            The interface type to try facading to.
-     * 
+     *
+     * @param sourceObject The object to check.
+     * @param targetType   The interface type to try facading to.
      * @return <code>true</code> if the object implements the
      *         {@link Facadable} interface.
      */
@@ -500,20 +527,19 @@ public class FacadeAssistant {
         return findAnnotationClass( type, sourceType.getClassLoader() );
     }
 
+    @SuppressWarnings( {"unchecked"} )
     private Class<? extends Annotation> findAnnotationClass( Class<? extends Annotation> type,
-            ClassLoader classLoader ) {
-        return ( Class<? extends Annotation> ) findClass( type, classLoader );
+                                                             ClassLoader classLoader ) {
+        return (Class<? extends Annotation>) findClass( type, classLoader );
     }
 
     /**
      * Finds the equivalent class for the provided <code>type</code> in the
      * class loader of the specified <code>target</code>. If none exists,
      * <code>null</code> is returned.
-     * 
-     * @param sourceType
-     *            The source type
-     * @param target
-     *            The target object.
+     *
+     * @param sourceType The source type
+     * @param target     The target object.
      * @return the target type.
      */
     public Class<?> findClass( Class<?> sourceType, Object target ) {
@@ -524,11 +550,9 @@ public class FacadeAssistant {
      * Finds the equivalent class for the provided <code>type</code> in the
      * specified target class loader. If none exists, <code>null</code> is
      * returned.
-     * 
-     * @param sourceType
-     *            The source type.
-     * @param targetClassLoader
-     *            The target class loader.
+     *
+     * @param sourceType        The source type.
+     * @param targetClassLoader The target class loader.
      * @return The target type.
      */
     public Class<?> findClass( Class<?> sourceType, ClassLoader targetClassLoader ) {
@@ -546,11 +570,9 @@ public class FacadeAssistant {
      * Finds the class for the provided <code>classname</code> in the class
      * loader of the specified <code>targetObject</code>. If none can be
      * found, <code>null</code> is returned.
-     * 
-     * @param classname
-     *            The classname to find.
-     * @param targetObject
-     *            The target object.
+     *
+     * @param classname    The classname to find.
+     * @param targetObject The target object.
      * @return The target type.
      */
     public Class<?> findClass( String classname, Object targetObject ) {
@@ -561,11 +583,9 @@ public class FacadeAssistant {
      * Finds the class for the provided <code>classname</code> in the
      * specified <code>targetClassLoader</code>. If none can be found,
      * <code>null</code> is returned.
-     * 
-     * @param classname
-     *            The class name.
-     * @param targetClassLoader
-     *            The target class loader.
+     *
+     * @param classname         The class name.
+     * @param targetClassLoader The target class loader.
      * @return the target type.
      */
     public Class<?> findClass( String classname, ClassLoader targetClassLoader ) {
@@ -582,12 +602,9 @@ public class FacadeAssistant {
      * able accessed directly in the target class loader. This indicates that
      * the object class is provided by another class loader which is an ancestor
      * to both the object class's loader and the <code>targetClassLoader</code>.
-     * 
-     * @param object
-     *            The object to check.
-     * @param targetClassLoader
-     *            The class loader the check against.
-     * 
+     *
+     * @param object            The object to check.
+     * @param targetClassLoader The class loader the check against.
      * @return <code>true</code> if the object is transportable.
      */
     public boolean isShared( Object object, ClassLoader targetClassLoader ) {
@@ -603,15 +620,14 @@ public class FacadeAssistant {
     /**
      * Creates a facade of the specified object, if it is facadable. If not,
      * <code>null</code> is returned.
-     * 
-     * @param <T>
-     *            The target type.
-     * @param facadable
-     *            The object being facaded.
-     * @param targetType
-     *            The target class.
+     *
+     * @param <T>               The target type.
+     * @param facadable         The object being facaded.
+     * @param targetType        The target class.
+     * @param targetClassLoader The target class loader.
      * @return The facaded object, or <code>null</code>.
      */
+    @SuppressWarnings( {"unchecked"} )
     private <T> T toFacade( Object facadable, Class<T> targetType, ClassLoader targetClassLoader ) {
         if ( !isFacadable( facadable, targetType ) )
             return null;
@@ -627,14 +643,15 @@ public class FacadeAssistant {
         if ( interfaces != null && interfaces.length > 0 ) {
             InvocationHandler invocationHandler = createInvocationHandler( targetClassLoader, facadable );
             if ( invocationHandler != null )
-                return ( T ) Proxy.newProxyInstance( targetClassLoader, interfaces, invocationHandler );
+                return (T) Proxy.newProxyInstance( targetClassLoader, interfaces, invocationHandler );
         }
         return null;
     }
 
+    @SuppressWarnings( {"unchecked"} )
     private InvocationHandler createInvocationHandler( ClassLoader targetClassLoader, Object facadable ) {
         try {
-            Class<? extends InvocationHandler> handlerClass = ( Class<? extends InvocationHandler> ) Class
+            Class<? extends InvocationHandler> handlerClass = (Class<? extends InvocationHandler>) Class
                     .forName( FacadeInvocationHandler.class.getName(), true, targetClassLoader );
             Constructor<? extends InvocationHandler> cnst = handlerClass.getConstructor( Object.class );
             return cnst.newInstance( facadable );
@@ -670,17 +687,17 @@ public class FacadeAssistant {
     private Class<?>[] getAllInterfaces( Object object ) {
         Set<Class<?>> interfaces = new java.util.HashSet<Class<?>>();
         addAllInterfaces( interfaces, object.getClass() );
-        return ( Class<?>[] ) interfaces.toArray( new Class<?>[interfaces.size()] );
+        return (Class<?>[]) interfaces.toArray( new Class<?>[interfaces.size()] );
     }
 
     private void addAllInterfaces( Set<Class<?>> interfaces, Class<?> clazz ) {
         Class<?>[] classInterfaces = clazz.getInterfaces();
 
         // Add direct interfaces...
-        for ( int i = 0; i < classInterfaces.length; i++ ) {
-            if ( !interfaces.contains( classInterfaces[i] ) ) {
-                interfaces.add( classInterfaces[i] );
-                addAllInterfaces( interfaces, classInterfaces[i] );
+        for ( Class<?> classInterface : classInterfaces ) {
+            if ( !interfaces.contains( classInterface ) ) {
+                interfaces.add( classInterface );
+                addAllInterfaces( interfaces, classInterface );
             }
         }
 
@@ -691,27 +708,25 @@ public class FacadeAssistant {
 
     /**
      * Converts the provided array of classes into the equivalent list of
-     * classes local to the <code>targetClassLoader</code>.
-     * 
-     * @param sourceClasses
-     *            The array of classes.
-     * @param targetClassLoader
-     *            The class loader the returned classes will be from.
-     * @param requireClass
-     *            if all classes must have an equivalent in the target
-     *            classloader.
-     * @return
-     * @throws ClassNotFoundException
-     *             if an equivalent class cannot be found and
-     *             <code>requireClass</code> is <code>true</code>.
+     * classes local to the <code>targetClassLoader</code>. If some of the classes
+     * are not present in the target class loader, they will either be skipped, or
+     * if <code>requireClass</code> is <code>true</code>, a {@link ClassNotFoundException} is thrown.
+     *
+     * @param sourceClasses     The array of classes.
+     * @param targetClassLoader The class loader the returned classes will be from.
+     * @param requireClass      if all classes must have an equivalent in the target
+     *                          classloader.
+     * @return The classes local to the target class loader.
+     * @throws ClassNotFoundException if an equivalent class cannot be found and
+     *                                <code>requireClass</code> is <code>true</code>.
      */
     Class<?>[] toFacadeClasses( Class<?>[] sourceClasses, ClassLoader targetClassLoader, boolean requireClass )
             throws ClassNotFoundException {
         Class<?>[] targetInterfaces = new Class[sourceClasses.length];
         int targetIndex = 0;
-        for ( int i = 0; i < sourceClasses.length; i++ ) {
+        for ( Class<?> sourceClass : sourceClasses ) {
             try {
-                targetInterfaces[targetIndex] = Class.forName( sourceClasses[i].getName(), false,
+                targetInterfaces[targetIndex] = Class.forName( sourceClass.getName(), false,
                         targetClassLoader );
                 targetIndex++;
             } catch ( ClassNotFoundException e ) {
@@ -726,47 +741,29 @@ public class FacadeAssistant {
     }
 
     /**
-     * Finds the cached facade for the object, if it already exists.
-     * 
-     * @param object
-     *            The object being facaded.
-     * @param type
-     *            The target class.
+     * Finds the cachable facade for the object, if it already exists.
+     *
+     * @param object The object being facaded.
+     * @param type   The target class.
      * @return The facade, if it exists.
      */
-    private <T> T findCachedFacade( Object object, Class<T> type ) {
-        if ( loaderCache != null ) {
-            Map<Object, Object> facadeCache = loaderCache.get( type.getClassLoader() );
-            if ( facadeCache != null )
-                return ( T ) facadeCache.get( object );
-        }
+    @SuppressWarnings( {"unchecked"} )
+    private <T> T getCachedFacade( Object object, Class<T> type ) {
+        if ( cache != null )
+            return cache.get( object, type );
         return null;
     }
 
-    private void cacheFacade( Object facade, Object sourceObject, Class<?> targetType ) {
-        Map<Object, Object> facadeCache = null;
-        if ( loaderCache != null ) {
-            facadeCache = loaderCache.get( targetType.getClassLoader() );
-        }
-
-        if ( facadeCache == null ) {
-            facadeCache = new java.util.WeakHashMap<Object, Object>();
-
-            if ( loaderCache == null )
-                loaderCache = new java.util.WeakHashMap<ClassLoader, Map<Object, Object>>();
-
-            loaderCache.put( targetType.getClassLoader(), facadeCache );
-        }
-
-        facadeCache.put( sourceObject, facade );
+    private <T> void setCachedFacade( T facade, Object sourceObject, Class<T> targetType ) {
+        if ( cache != null )
+            cache.set( sourceObject, facade, targetType );
     }
 
     /**
      * Tests if the provided object is a locally-created facade of another
      * object.
-     * 
-     * @param object
-     *            The object to test.
+     *
+     * @param object The object to test.
      * @return <code>true</code> if the object is a local facade.
      */
     public boolean isLocalFacade( Object object ) {
@@ -776,9 +773,8 @@ public class FacadeAssistant {
     /**
      * Tests if the provided object is a facade of another object, from any
      * classloader.
-     * 
-     * @param object
-     *            The object to test.
+     *
+     * @param object The object to test.
      * @return <code>true</code> if the object is a facade from any
      *         classloader.
      */
@@ -796,13 +792,10 @@ public class FacadeAssistant {
      * Returns the {@link InvocationHandler} for the specified object, if it is
      * a proxy object. It will also test if the handler implements the provided
      * type and only return it if it does, casting to the specified type.
-     * 
-     * @param <T>
-     *            The InvocationHandler type.
-     * @param object
-     *            The object to search.
-     * @param type
-     *            The type of handler class.
+     *
+     * @param <T>    The InvocationHandler type.
+     * @param object The object to search.
+     * @param type   The type of handler class.
      * @return The handler, or <code>null</code> if not found.
      */
     private <T extends InvocationHandler> T getInvocationHandler( Object object, Class<T> type ) {
@@ -817,9 +810,8 @@ public class FacadeAssistant {
     /**
      * Returns the wrapped object if this is a facade, or <code>null</code> if
      * not.
-     * 
-     * @param facade
-     *            The possible facade object.
+     *
+     * @param facade The possible facade object.
      * @return The wrapped object.
      */
     public Object getWrapped( Object facade ) {
@@ -829,23 +821,21 @@ public class FacadeAssistant {
     /**
      * Returns the wrapped object if it is a facade and the class matches the
      * <code>wrappedClass</code>.
-     * 
-     * @param <W>
-     *            The Type the wrapped object must implement/extend.
-     * @param facade
-     *            The facade object.
-     * @param wrappedClass
-     *            The class the wrapped object must implement.
+     *
+     * @param <W>          The Type the wrapped object must implement/extend.
+     * @param facade       The facade object.
+     * @param wrappedClass The class the wrapped object must implement.
      * @return The wrapped object, or <code>null</code> if it was not a
      *         facade.
      */
+    @SuppressWarnings( {"unchecked"} )
     public <W> W getWrapped( Object facade, Class<W> wrappedClass ) {
         Object wrapped = null;
 
         InvocationHandler handler = getInvocationHandler( facade, InvocationHandler.class );
         if ( handler instanceof FacadeInvocationHandler ) {
             // Local facade
-            wrapped = ( ( FacadeInvocationHandler ) handler ).wrapped;
+            wrapped = ( (FacadeInvocationHandler) handler ).wrapped;
         } else if ( handler != null ) {
             Class<?> facadeClass = findClass( FacadeInvocationHandler.class, handler );
             if ( facadeClass != null && facadeClass.isInstance( handler ) ) {
@@ -866,7 +856,7 @@ public class FacadeAssistant {
         }
 
         if ( wrappedClass.isInstance( wrapped ) )
-            return ( W ) wrapped;
+            return (W) wrapped;
 
         return null;
     }
@@ -874,11 +864,9 @@ public class FacadeAssistant {
     /**
      * Finds the {@link FacadeInfo} for the specified type/signature combo. This
      * method will cache results for subsequent calls.
-     * 
-     * @param type
-     *            The type.
-     * @param signature
-     *            The method signature.
+     *
+     * @param type      The type.
+     * @param signature The method signature.
      * @return The facade info.
      */
     FacadeInfo findFacadeInfo( Class<?> type, MethodSignature signature ) {
@@ -886,7 +874,7 @@ public class FacadeAssistant {
             return null;
 
         Map<MethodSignature, FacadeInfo> signatureMap = facadableMethods.get( type );
-        FacadeInfo info = null;
+        FacadeInfo info;
         if ( signatureMap == null ) {
             signatureMap = new java.util.HashMap<MethodSignature, FacadeInfo>();
             facadableMethods.put( type, signatureMap );

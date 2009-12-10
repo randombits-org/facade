@@ -23,58 +23,12 @@
  */
 package org.randombits.facade;
 
-import org.jmock.Expectations;
-import org.jmock.Mockery;
-import org.jmock.integration.junit4.JUnit4Mockery;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import java.lang.annotation.*;
 
-import java.lang.reflect.Method;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertSame;
-
-public class FacadeInvocationHandlerTest {
-    private Mockery context = new JUnit4Mockery();
-
-    @Before
-    public void setUp() throws Exception {
-    }
-
-    @After
-    public void tearDown() throws Exception {
-    }
-
-    @Test
-    public void testFacadeInvocationHandler() {
-        String wrapped = "wrapped";
-        FacadeInvocationHandler handler = new FacadeInvocationHandler( wrapped );
-        assertSame( wrapped, handler.wrapped );
-    }
-
-    @Test
-    public void testInvoke() throws Exception {
-        final FacadableInterface test = context.mock( FacadableInterface.class );
-        FacadeInvocationHandler handler = new FacadeInvocationHandler( test );
-        Method method = FacadableInterface.class.getMethod( "getValue" );
-
-        context.checking( new Expectations() {
-            {
-                one( test ).getValue();
-                will( returnValue( "success" ) );
-            }
-        } );
-        
-        assertEquals( "success", handler.invoke( null, method, null ) );
-
-    }
-
-    @Test
-    public void testWrapped() {
-        final FacadableInterface test = context.mock( FacadableInterface.class );
-        FacadeInvocationHandler handler = new FacadeInvocationHandler( test );
-
-        assertSame( test, handler.getWrapped() );
-    }
+/**
+ * This attribute is used to mark a type (class or interface) as a cachable facade.
+ */
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ElementType.TYPE})
+@Documented public @interface Cachable {
 }

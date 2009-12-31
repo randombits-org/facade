@@ -1,0 +1,27 @@
+#summary A history of release, with major updates noted.
+#labels Featured
+
+= Introduction =
+
+This page lists releases and major point of each release.
+
+
+= Details =
+
+== 1.1.0 ==
+*Date:* Dec 31, 2009
+
+  * Removed many 'printStackTrace' calls to improve performance.
+  * Made caching of Facaded objects off by default. Objects that wish to be cached must now implement the 'Cachable' interface.
+
+== 1.0.2 ==
+
+  * Bugfix release.
+
+== 1.0.1 ==
+
+  * Bugfix release.
+
+== 1.0.0 ==
+
+  * Initial public release.

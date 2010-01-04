@@ -37,6 +37,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Map;
 import java.util.Set;
+import org.apache.log4j.Logger;
 
 /**
  * This assistant class helps with transporting objects between classloaders.
@@ -45,8 +46,10 @@ import java.util.Set;
  * @author David Peterson
  */
 public class FacadeAssistant {
+	private static final Logger LOG = Logger.getLogger( FacadeAssistant.class );
 
     class FacadeInfo {
+
         private boolean returnFacadable;
 
         private int arrayTypeParameter = -1;
@@ -139,20 +142,15 @@ public class FacadeAssistant {
                 try {
                     return (Integer) a.getClass().getMethod( "value" ).invoke( a );
                 } catch ( IllegalArgumentException e ) {
-                    // LOG.error( e );
-                    e.printStackTrace();
+                     LOG.error( e );
                 } catch ( SecurityException e ) {
-                    // LOG.error( e );
-                    e.printStackTrace();
+                     LOG.error( e );
                 } catch ( IllegalAccessException e ) {
-                    // LOG.error( e );
-                    e.printStackTrace();
+                     LOG.error( e );
                 } catch ( InvocationTargetException e ) {
-                    // LOG.error( e );
-                    e.printStackTrace();
+                     LOG.error( e );
                 } catch ( NoSuchMethodException e ) {
-                    // LOG.error( e );
-                    e.printStackTrace();
+                     LOG.error( e );
                 }
             }
             return -1;
@@ -402,11 +400,9 @@ public class FacadeAssistant {
                 return (T) targetObject;
 
         } catch ( IOException e ) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            LOG.error( e );
         } catch ( ClassNotFoundException e ) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            LOG.error( e );
         }
         return null;
     }
@@ -637,7 +633,7 @@ public class FacadeAssistant {
             interfaces = toFacadeClasses( interfaces, targetClassLoader, false );
         } catch ( ClassNotFoundException e ) {
             // This shouldn't happen...
-            e.printStackTrace();
+            LOG.error( e );
         }
 
         if ( interfaces != null && interfaces.length > 0 ) {
@@ -658,28 +654,22 @@ public class FacadeAssistant {
         } catch ( ClassNotFoundException e ) {
             return null;
         } catch ( SecurityException e ) {
-            // LOG.warn( "Incompatible version of Facade: " + e.getMessage(), e
-            // );
-            e.printStackTrace();
+             LOG.warn( "Incompatible version of Facade: " + e.getMessage(), e
+             );
         } catch ( NoSuchMethodException e ) {
-            // LOG.warn( "Incompatible version of Facade: " + e.getMessage(), e
-            // );
-            e.printStackTrace();
+             LOG.warn( "Incompatible version of Facade: " + e.getMessage(), e
+             );
         } catch ( IllegalArgumentException e ) {
-            // LOG.warn( "Incompatible version of Facade: " + e.getMessage(), e
-            // );
-            e.printStackTrace();
+             LOG.warn( "Incompatible version of Facade: " + e.getMessage(), e
+             );
         } catch ( InstantiationException e ) {
-            // LOG.warn( "Error while creating Facade: " + e.getMessage(), e );
-            e.printStackTrace();
+             LOG.warn( "Error while creating Facade: " + e.getMessage(), e );
         } catch ( IllegalAccessException e ) {
-            // LOG.warn( "Incompatible version of Facade: " + e.getMessage(), e
-            // );
-            e.printStackTrace();
+             LOG.warn( "Incompatible version of Facade: " + e.getMessage(), e
+             );
         } catch ( InvocationTargetException e ) {
-            // LOG.warn( "Incompatible version of Facade: " + e.getMessage(), e
-            // );
-            e.printStackTrace();
+             LOG.warn( "Incompatible version of Facade: " + e.getMessage(), e
+             );
         }
         return null;
     }

@@ -12,6 +12,10 @@
 		class loaders.
 	</description>
 	
+	<properties>
+		<java.home>${JAVA_HOME}</java.home>
+	</properties>
+
 	<organization>
 		<name>randombits.org</name>
 		<url>http://www.randombits.org/</url>
@@ -58,6 +62,22 @@
 			<version>4.4</version>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>log4j</groupId>
+			<artifactId>log4j</artifactId>
+			<version>1.2.15</version>
+			<scope>provided</scope>
+		</dependency>
+
+	<dependency>
+		<groupId>com.sun</groupId>
+		<artifactId>tools</artifactId>
+		<version>1.5.0</version>
+		<scope>system</scope>
+		<systemPath>${java.home}\lib\tools.jar</systemPath>
+	</dependency>
+
+
 	</dependencies>
 	
 	<scm>

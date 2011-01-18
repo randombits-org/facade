@@ -267,7 +267,7 @@ public class FacadeAssistant {
      * @param targetType        The target type. Must be from the target classloader.
      * @param targetClassLoader The target classloader.
      * @param facadeShared      If <code>true</code> and the sourceObject is 'shared' (see
-     *                          {@link #isShared(Object, ClassLoader)), the object will be
+     *                          {@link #isShared(Object, ClassLoader)}, the object will be
      *                          facaded even if it doesn't have the {@link Facadable}
      *                          annotation.
      * @return The object, prepared to be usable in the target class loader.

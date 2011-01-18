@@ -23,21 +23,13 @@
  */
 package org.randombits.facade;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectOutputStream;
-import java.io.Serializable;
+import org.apache.log4j.Logger;
+
+import java.io.*;
 import java.lang.annotation.Annotation;
-import java.lang.reflect.Array;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
+import java.lang.reflect.*;
 import java.util.Map;
 import java.util.Set;
-import org.apache.log4j.Logger;
 
 /**
  * This assistant class helps with transporting objects between classloaders.
@@ -46,7 +38,8 @@ import org.apache.log4j.Logger;
  * @author David Peterson
  */
 public class FacadeAssistant {
-	private static final Logger LOG = Logger.getLogger( FacadeAssistant.class );
+    
+    private static final Logger LOG = Logger.getLogger( FacadeAssistant.class );
 
     class FacadeInfo {
 
@@ -142,15 +135,15 @@ public class FacadeAssistant {
                 try {
                     return (Integer) a.getClass().getMethod( "value" ).invoke( a );
                 } catch ( IllegalArgumentException e ) {
-                     LOG.error( e );
+                    LOG.error( e );
                 } catch ( SecurityException e ) {
-                     LOG.error( e );
+                    LOG.error( e );
                 } catch ( IllegalAccessException e ) {
-                     LOG.error( e );
+                    LOG.error( e );
                 } catch ( InvocationTargetException e ) {
-                     LOG.error( e );
+                    LOG.error( e );
                 } catch ( NoSuchMethodException e ) {
-                     LOG.error( e );
+                    LOG.error( e );
                 }
             }
             return -1;
@@ -285,7 +278,7 @@ public class FacadeAssistant {
         return prepareObject( sourceObject, targetType, targetClassLoader, facadeShared, null );
     }
 
-    @SuppressWarnings( {"unchecked"} )
+    @SuppressWarnings({"unchecked"})
     public <T> T prepareObject( Object sourceObject, Class<T> targetType, ClassLoader targetClassLoader,
                                 boolean facadeShared, Class<?> componentType ) {
         if ( sourceObject == null )
@@ -348,8 +341,9 @@ public class FacadeAssistant {
 
         }
 
-        if ( targetObject == null && sourceObject instanceof Serializable ) {
-            // If that fails, convert it via Serialization
+        if ( targetObject == null && sourceObject instanceof Serializable
+                && findClass( sourceObject.getClass(), targetClassLoader ) != null ) {
+            // If that fails, convert it via Serialization, so long as the class is available locally.
             targetObject = toSerialized( sourceObject, targetType, targetClassLoader );
         }
 
@@ -381,7 +375,7 @@ public class FacadeAssistant {
         return false;
     }
 
-    @SuppressWarnings( {"unchecked"} )
+    @SuppressWarnings({"unchecked"})
     private <T> T toSerialized( Object sourceObject, Class<T> targetType, ClassLoader targetClassLoader ) {
         try {
             // Freeze
@@ -400,9 +394,9 @@ public class FacadeAssistant {
                 return (T) targetObject;
 
         } catch ( IOException e ) {
-            LOG.error( e );
+            throw new FacadeException( e );
         } catch ( ClassNotFoundException e ) {
-            LOG.error( e );
+            throw new FacadeException( e );
         }
         return null;
     }
@@ -432,7 +426,7 @@ public class FacadeAssistant {
      * @param enumType     The enum type in the target classloader.
      * @return The specified enum type.
      */
-    @SuppressWarnings( {"unchecked"} )
+    @SuppressWarnings({"unchecked"})
     private <T> T toEnum( Object sourceObject, Class<T> enumType ) {
         try {
             return (T) enumType.getMethod( "valueOf", String.class ).invoke( null,
@@ -523,7 +517,7 @@ public class FacadeAssistant {
         return findAnnotationClass( type, sourceType.getClassLoader() );
     }
 
-    @SuppressWarnings( {"unchecked"} )
+    @SuppressWarnings({"unchecked"})
     private Class<? extends Annotation> findAnnotationClass( Class<? extends Annotation> type,
                                                              ClassLoader classLoader ) {
         return (Class<? extends Annotation>) findClass( type, classLoader );
@@ -623,7 +617,7 @@ public class FacadeAssistant {
      * @param targetClassLoader The target class loader.
      * @return The facaded object, or <code>null</code>.
      */
-    @SuppressWarnings( {"unchecked"} )
+    @SuppressWarnings({"unchecked"})
     private <T> T toFacade( Object facadable, Class<T> targetType, ClassLoader targetClassLoader ) {
         if ( !isFacadable( facadable, targetType ) )
             return null;
@@ -644,7 +638,7 @@ public class FacadeAssistant {
         return null;
     }
 
-    @SuppressWarnings( {"unchecked"} )
+    @SuppressWarnings({"unchecked"})
     private InvocationHandler createInvocationHandler( ClassLoader targetClassLoader, Object facadable ) {
         try {
             Class<? extends InvocationHandler> handlerClass = (Class<? extends InvocationHandler>) Class
@@ -654,22 +648,17 @@ public class FacadeAssistant {
         } catch ( ClassNotFoundException e ) {
             return null;
         } catch ( SecurityException e ) {
-             LOG.warn( "Incompatible version of Facade: " + e.getMessage(), e
-             );
+            LOG.warn( "Incompatible version of Facade: " + e.getMessage(), e );
         } catch ( NoSuchMethodException e ) {
-             LOG.warn( "Incompatible version of Facade: " + e.getMessage(), e
-             );
+            LOG.warn( "Incompatible version of Facade: " + e.getMessage(), e );
         } catch ( IllegalArgumentException e ) {
-             LOG.warn( "Incompatible version of Facade: " + e.getMessage(), e
-             );
+            LOG.warn( "Incompatible version of Facade: " + e.getMessage(), e );
         } catch ( InstantiationException e ) {
-             LOG.warn( "Error while creating Facade: " + e.getMessage(), e );
+            LOG.warn( "Error while creating Facade: " + e.getMessage(), e );
         } catch ( IllegalAccessException e ) {
-             LOG.warn( "Incompatible version of Facade: " + e.getMessage(), e
-             );
+            LOG.warn( "Incompatible version of Facade: " + e.getMessage(), e );
         } catch ( InvocationTargetException e ) {
-             LOG.warn( "Incompatible version of Facade: " + e.getMessage(), e
-             );
+            LOG.warn( "Incompatible version of Facade: " + e.getMessage(), e );
         }
         return null;
     }
@@ -737,7 +726,7 @@ public class FacadeAssistant {
      * @param type   The target class.
      * @return The facade, if it exists.
      */
-    @SuppressWarnings( {"unchecked"} )
+    @SuppressWarnings({"unchecked"})
     private <T> T getCachedFacade( Object object, Class<T> type ) {
         if ( cache != null )
             return cache.get( object, type );
@@ -818,7 +807,7 @@ public class FacadeAssistant {
      * @return The wrapped object, or <code>null</code> if it was not a
      *         facade.
      */
-    @SuppressWarnings( {"unchecked"} )
+    @SuppressWarnings({"unchecked"})
     public <W> W getWrapped( Object facade, Class<W> wrappedClass ) {
         Object wrapped = null;
 

@@ -27,7 +27,7 @@ import java.util.Set;
 
 @Facadable
 public interface FacadableInterface {
-    public enum Result {
+    enum Result {
         SAME, LOCAL, FACADE
     }
 
@@ -48,5 +48,7 @@ public interface FacadableInterface {
     @Facadable
     UnfacadableInterface getFacadedUnfacadable();
 
-    public Object getFacadableAsObject();
+    Object getFacadableAsObject();
+
+    Object getSerializable();
 }

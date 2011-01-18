@@ -23,11 +23,11 @@
  */
 package org.randombits.facade;
 
+import org.randombits.facade.FacadeAssistant.FacadeInfo;
+
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-
-import org.randombits.facade.FacadeAssistant.FacadeInfo;
 
 public class FacadeInvocationHandler implements InvocationHandler {
     Object wrapped;
@@ -59,7 +59,7 @@ public class FacadeInvocationHandler implements InvocationHandler {
         return wrapped;
     }
 
-    public Object invoke( Object proxy, Method method, Object[] args ) throws Exception {
+    public Object invoke( Object proxy, Method method, Object[] args ) throws Throwable {
         try {
             Method iMethod = findWrappedMethod( method );
             MethodSignature signature = new MethodSignature( iMethod );
@@ -86,6 +86,8 @@ public class FacadeInvocationHandler implements InvocationHandler {
                         wrapperClass, wrapperLoader, false );
                 if ( preparedException != null )
                     throw preparedException;
+            } else if ( e.getTargetException() != null ) {
+                throw e.getTargetException();
             }
             throw new FacadeException( e );
         }

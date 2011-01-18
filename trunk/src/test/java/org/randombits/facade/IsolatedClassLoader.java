@@ -23,12 +23,13 @@
  */
 package org.randombits.facade;
 
+import org.apache.commons.io.IOUtils;
+
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
-
-import org.apache.commons.io.IOUtils;
 
 /**
  * This class simply loads classes that are available to the test environment in
@@ -36,15 +37,53 @@ import org.apache.commons.io.IOUtils;
  * recognised as being from separate class loaders. This is important for
  * testing plugin-related since each plugin is loaded in its own space once
  * uploaded into Confluence, etc.
- * 
+ *
+ * <p>You can block, isolate or inherit specific classes, packages or name patterns.
+ *
+ * <ul>
+ *  <li>blocked: Will not be loaded at all by the class loader.</li>
+ *  <li>isolated: Will be loaded separately by this class loader. Class instances will not match those from other class loaders, including the parent class loader.</li>
+ *  <li>inherited: Will be loaded by the parent or System class loader, not locally. This can be used to override specific subsets that have been isolated.</li>
+ * </ul>
+ *
  * @author David Peterson
- * 
  */
 public class IsolatedClassLoader extends ClassLoader {
 
-    private List<Pattern> includes;
+    private interface PatternHandler<T> {
 
-    private List<Pattern> excludes;
+        Pattern toPattern( T value );
+    }
+
+    private static PatternHandler<Class<?>> CLASS_HANDLER = new PatternHandler<Class<?>>() {
+
+        public Pattern toPattern( Class<?> value ) {
+            String name = value.getName().replaceAll( "\\.", "\\\\.");
+            return Pattern.compile( name );
+        }
+    };
+
+    private static PatternHandler<Package> PACKAGE_HANDLER = new PatternHandler<Package>() {
+
+        public Pattern toPattern( Package value ) {
+            String name = value.getName().replaceAll( "\\.", "\\\\." );
+            return Pattern.compile( name + "\\..+" );
+
+        }
+    };
+
+    private static PatternHandler<String> STRING_HANDLER = new PatternHandler<String>() {
+
+        public Pattern toPattern( String value ) {
+            return Pattern.compile( value );
+        }
+    };
+
+    private List<Pattern> inherited = new ArrayList<Pattern>();
+
+    private List<Pattern> isolated = new ArrayList<Pattern>();
+
+    private List<Pattern> blocked = new ArrayList<Pattern>();
 
     public IsolatedClassLoader() {
     }
@@ -53,73 +92,65 @@ public class IsolatedClassLoader extends ClassLoader {
         super( parent );
     }
 
-    public IsolatedClassLoader exclude( Package... packages ) {
-        for ( Package p : packages ) {
-            String name = getPattern( p );
-            exclude( name );
+    private <T> void addPatterns( List<Pattern> list, PatternHandler<T> handler, T... values ) {
+        for ( T value : values ) {
+            list.add( handler.toPattern( value ) );
         }
+    }
+
+    public IsolatedClassLoader inherit( Package... packages ) {
+        addPatterns( inherited, PACKAGE_HANDLER, packages );
         return this;
     }
 
-    public IsolatedClassLoader exclude( Class<?>... classes ) {
-        for ( Class<?> c : classes ) {
-            String name = getPattern( c );
-            exclude( name );
-        }
+    public IsolatedClassLoader inherit( Class<?>... classes ) {
+        addPatterns( inherited, CLASS_HANDLER, classes );
         return this;
     }
 
-    public IsolatedClassLoader exclude( String... patterns ) {
-        if ( excludes == null )
-            excludes = new java.util.ArrayList<Pattern>();
-
-        for ( String pattern : patterns ) {
-            excludes.add( Pattern.compile( pattern ) );
-        }
-
+    public IsolatedClassLoader inherit( String... patterns ) {
+        addPatterns( inherited, STRING_HANDLER, patterns );
         return this;
     }
 
-    public IsolatedClassLoader include( Package... packages ) {
-        for ( Package p : packages ) {
-            String name = getPattern( p );
-            include( name );
-        }
+    public IsolatedClassLoader block( Package... packages ) {
+        addPatterns( blocked, PACKAGE_HANDLER, packages );
         return this;
     }
 
-    public IsolatedClassLoader include( Class<?>... classes ) {
-        for ( Class<?> c : classes ) {
-            String name = getPattern( c );
-            include( name );
-        }
+    public IsolatedClassLoader block( Class<?>... classes ) {
+        addPatterns( blocked, CLASS_HANDLER, classes );
         return this;
     }
 
-    public IsolatedClassLoader include( String... patterns ) {
-        if ( includes == null )
-            includes = new java.util.ArrayList<Pattern>();
-        for ( String pattern : patterns ) {
-            includes.add( Pattern.compile( pattern ) );
-        }
+    public IsolatedClassLoader block( String... patterns ) {
+        addPatterns( blocked, STRING_HANDLER, patterns );
         return this;
     }
 
-    private String getPattern( Class<?> c ) {
-        String name = c.getName();
-        name = name.replaceAll( ".", "\\." );
-        name = name.replaceAll( "$", "\\$" );
-        return name;
+    public IsolatedClassLoader isolate( Package... packages ) {
+        addPatterns( isolated, PACKAGE_HANDLER, packages );
+        return this;
     }
 
-    private String getPattern( Package p ) {
-        String name = p.getName();
-        name = name.replaceAll( ".", "\\." ) + "\\..*";
-        return name;
+    public IsolatedClassLoader isolate( Class<?>... classes ) {
+        addPatterns( isolated, CLASS_HANDLER, classes );
+        return this;
+    }
+
+    public IsolatedClassLoader isolate( String... patterns ) {
+        addPatterns( isolated, STRING_HANDLER, patterns );
+        return this;
     }
 
     @Override
     public Class<?> loadClass( String name ) throws ClassNotFoundException {
+        // Excluded classes are not loaded at all
+        for ( Pattern p : blocked ) {
+            if ( p.matcher( name ).matches() )
+                throw new ClassNotFoundException( name );
+        }
+
         // check if the class is already loaded
         Class<?> loadedClass = findLoadedClass( name );
 
@@ -136,27 +167,23 @@ public class IsolatedClassLoader extends ClassLoader {
     }
 
     protected Class<?> findStubClass( String name ) throws ClassNotFoundException {
-        // First, check that we are supposed to load this class ourself
-        // Check excludes first
-        if ( excludes != null ) {
-            for ( Pattern p : excludes ) {
-                if ( p.matcher( name ).matches() )
-                    return null;
-            }
+        // First, check that we are supposed to load this class ourselves
+        // Check explicit inherits first - these get thrown back to the parent/system class loader.
+        for ( Pattern p : inherited ) {
+            if ( p.matcher( name ).matches() )
+                return null;
         }
 
         // Then check includes.
-        if ( includes != null ) {
-            boolean found = false;
-            for ( Pattern p : includes ) {
-                if ( p.matcher( name ).matches() ) {
-                    found = true;
-                    break;
-                }
+        boolean found = false;
+        for ( Pattern p : isolated ) {
+            if ( p.matcher( name ).matches() ) {
+                found = true;
+                break;
             }
-            if ( !found )
-                return null;
         }
+        if ( !found )
+            return null;
 
         // If we're still here, load the class.
         byte[] b = loadClassData( name );

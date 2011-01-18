@@ -3,7 +3,7 @@
     <groupId>org.randombits.facade</groupId>
     <artifactId>facade</artifactId>
     <packaging>jar</packaging>
-    <version>1.1.2-SNAPSHOT</version>
+    <version>1.1.1-SNAPSHOT</version>
     <name>Facade</name>
     <url>http://code.google.com/p/facade</url>
 
@@ -11,6 +11,13 @@
         This library provides a mechanism for accessing objects between
         class loaders.
     </description>
+
+    <licenses>
+        <license>
+            <name>New BSD License</name>
+            <url>http://www.opensource.org/licenses/bsd-license.php</url>
+        </license>
+    </licenses>
 
     <organization>
         <name>randombits.org</name>

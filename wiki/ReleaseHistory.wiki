@@ -8,6 +8,11 @@ This page lists releases and major point of each release.
 
 = Details =
 
+== 1.1.1 ==
+*Date:* Jan 19, 2011
+  * Removed all remaining 'printStackTrace' calls, replacing with Log4J logging.
+  * Fixed a bug when dealing with Serializable objects that do not exist in the target ClassLoader.
+
 == 1.1.0 ==
 *Date:* Dec 31, 2009
 

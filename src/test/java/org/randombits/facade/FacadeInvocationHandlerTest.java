@@ -54,7 +54,7 @@ public class FacadeInvocationHandlerTest {
     }
 
     @Test
-    public void testInvoke() throws Exception {
+    public void testInvoke() throws Throwable {
         final FacadableInterface test = context.mock( FacadableInterface.class );
         FacadeInvocationHandler handler = new FacadeInvocationHandler( test );
         Method method = FacadableInterface.class.getMethod( "getValue" );

@@ -40,7 +40,7 @@ import java.lang.reflect.Proxy;
 
 import static org.junit.Assert.*;
 
-@RunWith( JMock.class )
+@RunWith(JMock.class)
 public class FacadeAssistantTest {
 
     private Mockery context = new JUnit4Mockery();
@@ -69,8 +69,9 @@ public class FacadeAssistantTest {
         String valueA = "A";
         testA = classA.getConstructor( Object.class ).newInstance( valueA );
 
-        // 'B'
-        classLoaderB = new IsolatedClassLoader().include( FacadeAssistant.class.getPackage() );
+        // 'B' - isolates the classes in the current package.
+        classLoaderB = new IsolatedClassLoader().isolate( FacadeAssistantTest.class.getPackage() );
+
         interfaceB = findClass( FacadableInterface.class, classLoaderB );
         Class<?> classB = findClass( FacadableObject.class, classLoaderB );
         valueB = "B";
@@ -361,7 +362,8 @@ public class FacadeAssistantTest {
                         return facade;
                     }
                 } );
-            }} );
+            }
+        } );
 
         CachableInterface facadedObject1 = facadeAssistant.prepareObject( cachableInstance, CachableInterface.class );
         assertNotSame( cachableInstance, facadedObject1 );
@@ -406,5 +408,74 @@ public class FacadeAssistantTest {
         assertNotSame( facadedObject1, facadedObject2 );
         assertSame( facadeAssistant.getWrapped( facadedObject1 ), facadeAssistant.getWrapped( facadedObject2 ) );
     }
+
+    private <T> T prepareInstance( Class<? extends T> instanceType, ClassLoader targetClassLoader, Class<T> targetType ) throws ClassNotFoundException, IllegalAccessException, InstantiationException {
+        Object instance = findClass( instanceType, targetClassLoader ).newInstance();
+        return FacadeAssistant.getInstance().prepareObject( instance, targetType );
+    }
+
+    @Test
+    public void testSerializableButUnavailable() throws Throwable {
+        FacadeAssistant facadeAssistant = new FacadeAssistant();
+
+        // Exactly the same as the local classloader, but blocks FacadableObject and SerializableEnum.
+        ClassLoader classLoaderC = new IsolatedClassLoader()
+                .isolate( FacadeAssistantTest.class.getPackage() )
+                .block( FacadableObject.class, FacadableSubclass.class, SerializableEnum.class );
+
+        Object facadableInterface = findClass( FacadableObject.class, classLoaderB ).newInstance();
+
+        // Create the tester in our 'C' class loader - assumes that prepareObject is working correctly :P
+        Tester tester = prepareInstance( TestSerializableButUnavailable.class, classLoaderC, Tester.class );
+
+        assertFalse( facadeAssistant.isLocal( facadableInterface ) );
+
+        // Set up expectations
+        context.checking( new Expectations() {{
+            // No calls expected.
+        }} );
+
+        // Test
+        tester.doTest( facadableInterface );
+    }
+
+    /**
+     * Facilitates testing sanely in another ClassLoader instance.
+     */
+    @Facadable
+    public interface Tester {
+
+        /**
+         * Executes a test, with a provided context object.
+         *
+         * @param context The context object.
+         * @throws Exception an exception.
+         */
+        public void doTest( Object context ) throws Throwable;
+    }
+
+    public static class TestSerializableButUnavailable implements Tester {
+
+        public void doTest( Object context ) {
+            FacadeAssistant assistant = FacadeAssistant.getInstance();
+
+            FacadableInterface contextInLocal = assistant.prepareObject( context, FacadableInterface.class );
+            assertNotNull( contextInLocal );
+
+            Object serializable = contextInLocal.getSerializable();
+            assertNotNull( serializable );
+            assertFalse( assistant.isLocal( serializable ) );
+            assertFalse( assistant.isFacade( serializable ) );
+
+            try {
+                // Make sure we can't load the class locally.
+                getClass().getClassLoader().loadClass( serializable.getClass().getName() );
+                fail( "Should have failed fo find the class:" + serializable.getClass().getName() );
+            } catch ( ClassNotFoundException e ) {
+                // Pass!
+            }
+        }
+    }
+
 
 }

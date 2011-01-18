@@ -31,6 +31,8 @@ public class FacadableObject implements FacadableInterface {
 
     private FacadableInterface[] array;
 
+    public FacadableObject() {}
+
     public FacadableObject( Object value ) {
         this.value = value;
     }
@@ -91,6 +93,10 @@ public class FacadableObject implements FacadableInterface {
 
     public Object getFacadableAsObject() {
         return array[0];
+    }
+
+    public Object getSerializable() {
+        return SerializableEnum.VALUE;
     }
 
     public <F> F[] getArray( Class<F> type ) {

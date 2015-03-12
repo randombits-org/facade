@@ -7,4 +7,6 @@ When would this situation arise, I hear you ask? Good question. The original sit
 
 This library gets around this limitation by using a combination of proxying and reflection, creating a facade for known objects created by foreign class loaders.
 
-See the [Home Page](https://github.com/randombits-org/facade/wiki/Release-History) for more details.
+See the [Home Page](https://github.com/randombits-org/facade/wiki/Home) for more details.
+
+See the [Release History](https://github.com/randombits-org/facade/wiki/Release-History) for the change list.

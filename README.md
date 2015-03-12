@@ -1,5 +1,5 @@
 # facade
-Punches holes through Java classloader walls.
+_Punches holes through Java classloader walls._
 
 This library facilitates allowing Java object instances which have the same class files loaded by separate class loaders in the same VM to communicate.
 
@@ -7,4 +7,4 @@ When would this situation arise, I hear you ask? Good question. The original sit
 
 This library gets around this limitation by using a combination of proxying and reflection, creating a facade for known objects created by foreign class loaders.
 
-See the Introduction for more details.
+See the [Home Page](https://github.com/randombits-org/facade/wiki/Release-History) for more details.

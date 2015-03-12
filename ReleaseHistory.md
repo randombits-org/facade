@@ -1,0 +1,31 @@
+# Introduction #
+
+This page lists releases and major point of each release.
+
+
+# Details #
+
+## 1.1.1 ##
+**Date:** Jan 19, 2011
+  * Removed all remaining 'printStackTrace' calls, replacing with Log4J logging.
+  * Fixed a bug when dealing with Serializable objects that do not exist in the target `ClassLoader`.
+  * [More details...](http://code.google.com/p/facade/issues/list?can=1&q=label%3AMilestone-Release1.1.1)
+
+## 1.1.0 ##
+**Date:** Dec 31, 2009
+
+  * Removed many 'printStackTrace' calls to improve performance.
+  * Made caching of Facaded objects off by default. Objects that wish to be cached must now implement the 'Cachable' interface.
+  * [More details...](http://code.google.com/p/facade/issues/list?can=1&q=label%3AMilestone-Release1.1.0)
+
+## 1.0.2 ##
+
+  * Bugfix release.
+
+## 1.0.1 ##
+
+  * Bugfix release.
+
+## 1.0.0 ##
+
+  * Initial public release.
